@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #ffecf2;
+      font-family: 'Arial', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .intro-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.5em;
+      color: #ff4081;
+      text-align: center;
+      opacity: 0;
+      animation: fadeInOut 3s forwards;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
+      width: 90%;
+      max-width: 600px;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    }
+
+    .ribbon-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      overflow: hidden;
+      z-index: 900;
+    }
+
+    .ribbon {
+      position: absolute;
+      width: 100%;
+      height: 50%;
+      background: #ff4081;
+      transition: transform 1.5s ease-in-out;
+    }
+
+    .ribbon.top {
+      top: 0;
+      transform-origin: bottom;
+    }
+
+    .ribbon.bottom {
+      bottom: 0;
+      transform-origin: top;
+    }
+
+    .ribbon.open-top {
+      transform: translateY(-100%);
+    }
+
+    .ribbon.open-bottom {
+      transform: translateY(100%);
+    }
+
+    .book-container {
+      display: none;
+      perspective: 2000px;
+      width: 90%;
+      max-width: 90vw; /* Adjusted for responsiveness */
+      height: 80vh; /* Adjusted for responsiveness */
+      position: relative;
+      margin: 50px auto;
+      overflow: hidden; /* Prevent overflow */
+    }
+
+    .book {
+      display: flex; /* Allow pages to be side by side */
+      flex-direction: row; /* Align pages horizontally */
+      width: 200%; /* Adjust width to accommodate both pages */
+    }
+
+    .page {
+      width: 50%; /* Each page takes half the width */
+      height: 100%;
+    }
+
+    .book {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transform: rotateY(0deg);
+      transition: transform 0.5s;
+    }
+
+    .page {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      transform-origin: left center;
+      transform-style: preserve-3d;
+      transition: transform 1s cubic-bezier(0.645, 0.045, 0.355, 1);
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    .page-front, .page-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background: white;
+      backface-visibility: hidden;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .page-back {
+      transform: rotateY(180deg);
+    }
+
+    .page.flipped {
+      transform: rotateY(-180deg);
+    }
+
+    /* Page gradients for 3D effect */
+    .page::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: linear-gradient(to right, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 20%);
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none;
+    }
+
+    .page.flipped::after {
+      opacity: 1;
+    }
+
+    .book-cover .page-front {
+      background: #ff4081;
+      color: white;
+    }
+
+    .page-image {
+      width: 80%;
+      height: 80%;
+      object-fit: cover;
+      margin: 10px 0;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .page-title {
+      font-size: clamp(20px, 5vw, 24px);
+      margin: 10px 0;
+      text-align: center;
+      color: inherit;
+    }
+
+    .page-text {
+      font-size: clamp(14px, 4vw, 16px);
+      text-align: center;
+      margin: 10px 0;
+      color: inherit;
+      line-height: 1.5;
+    }
+
+    .heart {
+      color: #ff4081;
+      font-size: 1.2em;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+
+    .book-cover .heart {
+      color: white;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .navigation {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .nav-button {
+      padding: 8px 16px;
+      background: #ff4081;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .nav-button:hover {
+      background: #f50057;
+      transform: translateY(-2px);
+    }
+
+    .nav-button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    @media (max-width: 480px) {
+      .book-container {
+        height: 60vh; /* Adjust height for smaller screens */
+      }
+      
+      .navigation {
+        bottom: 10px;
+      }
+      
+      .nav-button {
+        padding: 6px 12px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="intro-message">
+    Happy Valentine's Day<br>My Simmu Darling ❤️
+  </div>
+
+  <div class="ribbon-container">
+    <div class="ribbon top"></div>
+    <div class="ribbon bottom"></div>
+  </div>
+
+  <div class="book-container">
+    <div class="book">
+      <div class="page book-cover">
+        <div class="page-front">
+          <h1 class="page-title">Our Love Story <span class="heart">❤️</span></h1>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.15_4ceb6ffa.jpg" alt="Cover" class="page-image">
+          <p class="page-text">A Valentine's Special</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">The Beginning</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.15_dca1f40b.jpg" alt="First Memory" class="page-image">
+          <p class="page-text">Every moment with you is magical</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Our Journey</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.15_dc33e743.jpg" alt="Journey" class="page-image">
+          <p class="page-text">You make my world beautiful</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Together Forever</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.14_157f34bd.jpg" alt="Together" class="page-image">
+          <p class="page-text">Forever yours</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Our Love Story</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.01_5b831997.jpg" alt="Love Story" class="page-image">
+          <p class="page-text">A beautiful beginning.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Memories</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.01_ec82222c.jpg" alt="Memories" class="page-image">
+          <p class="page-text">Cherished moments together.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Our Journey</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.02_c8c86709.jpg" alt="Journey" class="page-image">
+          <p class="page-text">You make my world beautiful.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Together Forever</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.02_cb12f33a.jpg" alt="Together" class="page-image">
+          <p class="page-text">Forever yours.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Special Moments</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.02_fbefc81d.jpg" alt="Special Moments" class="page-image">
+          <p class="page-text">Every moment with you is magical.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Our Adventures</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.03_3a0037e8.jpg" alt="Adventures" class="page-image">
+          <p class="page-text">Adventures that we cherish.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Precious Times</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.03_dd5038e2.jpg" alt="Precious Times" class="page-image">
+          <p class="page-text">Times that we will never forget.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Endless Love</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.04_1d8ce61f.jpg" alt="Endless Love" class="page-image">
+          <p class="page-text">Our love is endless.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Cherished Memories</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.04_8ca6e04a.jpg" alt="Cherished Memories" class="page-image">
+          <p class="page-text">Memories that warm our hearts.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Forever Together</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.04_9dc025a9.jpg" alt="Forever Together" class="page-image">
+          <p class="page-text">Together forever.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Joyful Days</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.06_8681a906.jpg" alt="Joyful Days" class="page-image">
+          <p class="page-text">Days filled with joy.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Sweet Memories</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.06_233521aa.jpg" alt="Sweet Memories" class="page-image">
+          <p class="page-text">Sweet memories we hold dear.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Laughter and Love</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.06_bdfcaf51.jpg" alt="Laughter and Love" class="page-image">
+          <p class="page-text">Laughter that fills our hearts.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Together Always</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.06_db8eff10.jpg" alt="Together Always" class="page-image">
+          <p class="page-text">Always together.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Beautiful Moments</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.07_62f5d2f4.jpg" alt="Beautiful Moments" class="page-image">
+          <p class="page-text">Moments that take our breath away.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Our Love</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.07_0712968d.jpg" alt="Our Love" class="page-image">
+          <p class="page-text">A love that is true.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Endearing Memories</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.07_b9ef8bde.jpg" alt="Endearing Memories" class="page-image">
+          <p class="page-text">Memories that warm our hearts.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Moments Together</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.08_6c31ce4d.jpg" alt="Moments Together" class="page-image">
+          <p class="page-text">Together in every moment.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Our Adventures</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.08_de6f0a0b.jpg" alt="Our Adventures" class="page-image">
+          <p class="page-text">Adventures that we cherish.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Forever Yours</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.09_5a915126.jpg" alt="Forever Yours" class="page-image">
+          <p class="page-text">Yours forever.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Cherished Times</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.09_972b0303.jpg" alt="Cherished Times" class="page-image">
+          <p class="page-text">Times that we will never forget.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Endless Love</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.09_6387345f.jpg" alt="Endless Love" class="page-image">
+          <p class="page-text">Our love is endless.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Joyful Days</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.10_58d20491.jpg" alt="Joyful Days" class="page-image">
+          <p class="page-text">Days filled with joy.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Sweet Memories</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.11_01acf86d.jpg" alt="Sweet Memories" class="page-image">
+          <p class="page-text">Sweet memories we hold dear.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Laughter and Love</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.11_9d0bf371.jpg" alt="Laughter and Love" class="page-image">
+          <p class="page-text">Laughter that fills our hearts.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Together Always</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.11_841c825a.jpg" alt="Together Always" class="page-image">
+          <p class="page-text">Always together.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Beautiful Moments</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.11_e489482f.jpg" alt="Beautiful Moments" class="page-image">
+          <p class="page-text">Moments that take our breath away.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Our Love</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.12_52f70e23.jpg" alt="Our Love" class="page-image">
+          <p class="page-text">A love that is true.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Endearing Memories</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.12_b66081ff.jpg" alt="Endearing Memories" class="page-image">
+          <p class="page-text">Memories that warm our hearts.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Moments Together</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.13_2f2afbca.jpg" alt="Moments Together" class="page-image">
+          <p class="page-text">Together in every moment.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Our Adventures</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.13_29dba0d3.jpg" alt="Our Adventures" class="page-image">
+          <p class="page-text">Adventures that we cherish.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Forever Yours</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.13_ccbf42f1.jpg" alt="Forever Yours" class="page-image">
+          <p class="page-text">Yours forever.</p>
+        </div>
+      </div>
+
+      <div class="page">
+        <div class="page-front">
+          <h2 class="page-title">Cherished Times</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.14_157f34bd.jpg" alt="Cherished Times" class="page-image">
+          <p class="page-text">Times that we will never forget.</p>
+        </div>
+        <div class="page-back">
+          <h2 class="page-title">Endless Love</h2>
+          <img src="WhatsApp Image 2025-02-13 at 20.43.14_543fdfc1.jpg" alt="Endless Love" class="page-image">
+          <p class="page-text">Our love is endless.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="navigation">
+    <button class="nav-button" id="prevPage" disabled>Previous</button>
+    <button class="nav-button" id="nextPage">Next</button>
+  </div>
+
+  <script>
+    // Initial animations
+    setTimeout(() => {
+      document.querySelector('.intro-message').style.display = 'none';
+      document.querySelector('.ribbon-container').style.display = 'block';
+      
+      setTimeout(() => {
+        document.querySelector('.ribbon.top').classList.add('open-top');
+        document.querySelector('.ribbon.bottom').classList.add('open-bottom');
+        
+        setTimeout(() => {
+          document.querySelector('.ribbon-container').style.display = 'none';
+          document.querySelector('.book-container').style.display = 'block';
+          document.querySelector('.navigation').style.display = 'flex';
+        }, 1500);
+      }, 100);
+    }, 3000);
+
+    // Book navigation
+    const book = document.querySelector('.book');
+    const pages = document.querySelectorAll('.page');
+    const prevButton = document.getElementById('prevPage');
+    const nextButton = document.getElementById('nextPage');
+    let currentPage = 0;
+    let isAnimating = false;
+
+    function updatePages() {
+      if (isAnimating) return;
+      isAnimating = true;
+
+      pages.forEach((page, index) => {
+        if (index < currentPage) {
+          page.classList.add('flipped');
+          page.style.zIndex = 1;
+        } else {
+          page.classList.remove('flipped');
+          page.style.zIndex = pages.length - index;
+        }
+      });
+
+      // Update button states
+      prevButton.disabled = currentPage === 0;
+      nextButton.disabled = currentPage === pages.length;
+
+      // Reset animation lock after transition
+      setTimeout(() => {
+        isAnimating = false;
+      }, 1000);
+    }
+
+    function turnPage(direction) {
+      if (isAnimating) return;
+      
+      if (direction === 'next' && currentPage < pages.length) {
+        currentPage++;
+      } else if (direction === 'prev' && currentPage > 0) {
+        currentPage--;
+      }
+      
+      updatePages();
+    }
+
+    prevButton.addEventListener('click', () => turnPage('prev'));
+    nextButton.addEventListener('click', () => turnPage('next'));
+
+    // Touch and click handling
+    let startX = null;
+    const minSwipeDistance = 50;
+
+    pages.forEach((page, index) => {
+      page.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+      });
+
+      page.addEventListener('touchmove', (e) => {
+        if (!startX) return;
+        
+        const currentX = e.touches[0].clientX;
+        const diff = startX - currentX;
+
+        if (Math.abs(diff) > minSwipeDistance) {
+          if (diff > 0 && index === currentPage) {
+            turnPage('next');
+          } else if (diff < 0 && index === currentPage - 1) {
+            turnPage('prev');
+          }
+          startX = null;
+        }
+      });
+
+      page.addEventListener('touchend', () => {
+        startX = null;
+      });
+
+      page.addEventListener('click', () => {
+        if (index === currentPage) {
+          turnPage('next');
+        }
+      });
+    });
+
+    // Prevent image dragging
+    document.querySelectorAll('img').forEach(img => {
+      img.addEventListener('dragstart', (e) => e.preventDefault());
+    });
+  </script>
+</body>
+</html>
